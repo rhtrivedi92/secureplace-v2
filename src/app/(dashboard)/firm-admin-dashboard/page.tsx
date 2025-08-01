@@ -16,7 +16,20 @@ const COLORS = ["#001D49", "#FF5F15", "#F1F5F9", "#64748B"]; // Brand Blue, Oran
 
 // Add an interface for the safety training document
 interface SafetyTraining extends Models.Document {
+  status: string;
   type: string;
+}
+
+interface ChartDataPoint {
+  name: string;
+  value: number;
+}
+
+// NEW: Define a type for the chart state object
+interface ChartState {
+  drills: ChartDataPoint[];
+  workshops: ChartDataPoint[];
+  compliance: ChartDataPoint[];
 }
 
 const FirmAdminDashboardPage = () => {
@@ -26,7 +39,7 @@ const FirmAdminDashboardPage = () => {
     volunteers: 0,
     emergencies: 0,
   });
-  const [chartData, setChartData] = useState({
+  const [chartData, setChartData] = useState<ChartState>({
     drills: [],
     workshops: [],
     compliance: [],
