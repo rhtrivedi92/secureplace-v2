@@ -45,7 +45,7 @@ export function AddFirmButton() {
         <DialogHeader>
           <DialogTitle>Add New Firm</DialogTitle>
           <DialogDescription>
-            Enter the details for the new firm here. Click save when you're
+            Enter the details for the new firm here. Click save when you are
             done.
           </DialogDescription>
         </DialogHeader>

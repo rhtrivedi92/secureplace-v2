@@ -75,10 +75,15 @@ export default function ProfessionalLoginPage() {
       } else {
         router.push("/dashboard");
       }
-    } catch (err: any) {
+    } catch (error) {
       await account.deleteSession("current").catch(() => {});
-      setError(err.message || "Login failed. Please check your credentials.");
-      console.error("Login process failed:", err);
+      // Check if the error is an object with a message property
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+      }
+      console.error("Login process failed:", error);
     }
   }
 
