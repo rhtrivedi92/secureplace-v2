@@ -8,7 +8,7 @@ import { useState } from "react";
 import { ArrowRight, AtSign, KeyRound, Eye, EyeOff } from "lucide-react";
 
 import { account, databases } from "@/lib/appwrite";
-import { Query, Models } from "appwrite";
+import { Query } from "appwrite";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,12 +30,7 @@ const formSchema = z.object({
   }),
 });
 
-interface UserProfile extends Models.Document {
-  role: "employee" | "firm_admin" | "super_admin";
-}
-
 export default function ProfessionalLoginPage() {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -46,44 +41,40 @@ export default function ProfessionalLoginPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setError(null);
-
-    const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
-    const collectionId = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!;
-
     try {
+      // 1. Create the session in the browser
       await account.createEmailPasswordSession(values.email, values.password);
 
+      // 2. Get the logged-in user's account
       const user = await account.get();
 
-      const promise = await databases.listDocuments<UserProfile>(
+      // 3. Find the user's profile to get their role
+      const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
+      const collectionId =
+        process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!;
+
+      const profileResponse = await databases.listDocuments(
         databaseId,
         collectionId,
         [Query.equal("userId", user.$id)]
       );
 
-      if (promise.documents.length === 0) {
+      if (profileResponse.documents.length === 0) {
         throw new Error("User profile not found.");
       }
+      const role = profileResponse.documents[0].role;
 
-      const userProfile = promise.documents[0];
-      const role = userProfile.role;
-
+      // 4. Redirect with a FULL PAGE RELOAD to ensure all state is fresh
       if (role === "super_admin") {
-        router.push("/super-admin-dashboard");
+        window.location.assign("/super-admin-dashboard");
       } else if (role === "firm_admin") {
-        router.push("/firm-admin-dashboard");
+        window.location.assign("/firm-admin-dashboard");
       } else {
-        router.push("/dashboard");
+        setError("You do not have access to a dashboard.");
       }
-    } catch (error) {
-      await account.deleteSession("current").catch(() => {});
-      // Check if the error is an object with a message property
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError("An unexpected error occurred. Please try again.");
-      }
-      console.error("Login process failed:", error);
+    } catch (e: any) {
+      setError(e.message || "Login failed. Please check your credentials.");
+      console.error("Login process failed:", e);
     }
   }
 
@@ -98,12 +89,10 @@ export default function ProfessionalLoginPage() {
           }}
         />
         <div className="absolute inset-0 bg-white opacity-60" />
-
         <div className="relative z-20 flex items-center text-lg font-medium">
           <Image src={"/images/logo.png"} height={165} width={165} alt="Logo" />
         </div>
       </div>
-
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-md space-y-8">
           <div>
@@ -114,7 +103,6 @@ export default function ProfessionalLoginPage() {
               Enter your credentials to access the employee safety portal.
             </p>
           </div>
-
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -166,11 +154,9 @@ export default function ProfessionalLoginPage() {
                   </FormItem>
                 )}
               />
-
               {error && (
                 <p className="text-sm font-medium text-red-600">{error}</p>
               )}
-
               <div className="flex items-center justify-end">
                 <a
                   href="#"
@@ -179,7 +165,6 @@ export default function ProfessionalLoginPage() {
                   Forgot password?
                 </a>
               </div>
-
               <Button
                 type="submit"
                 className="w-full h-12 text-md bg-brand-orange hover:bg-orange-600 text-white font-semibold shadow-md transition-transform transform hover:scale-105"
@@ -190,24 +175,6 @@ export default function ProfessionalLoginPage() {
               </Button>
             </form>
           </Form>
-
-          <p className="px-8 text-center text-sm text-muted-foreground">
-            By clicking continue, you agree to our{" "}
-            <a
-              href="#"
-              className="underline underline-offset-4 hover:text-brand-blue"
-            >
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a
-              href="#"
-              className="underline underline-offset-4 hover:text-brand-blue"
-            >
-              Privacy Policy
-            </a>
-            .
-          </p>
         </div>
       </div>
     </div>

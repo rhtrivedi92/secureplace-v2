@@ -1,229 +1,104 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { useUser } from "@/hooks/useUser";
-import { databases } from "@/lib/appwrite";
+import { databases } from "@/lib/appwrite-server"; // <-- Use the server client
 import { Query, Models } from "appwrite";
-import StatCard from "../components/StatCard";
-import CircularGraph from "../components/CircularGraph";
-import MonthlyEmergenciesChart from "../components/MonthlyEmergenciesChart";
-import SafetyClassesTable from "../components/SafetyClassesTable";
-import { Users, UserCheck, Siren } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardUI } from "./DashboardUI";
 
-const COLORS = ["#001D49", "#FF5F15", "#F1F5F9", "#64748B"];
-
+// Define interfaces for our data structures
 interface SafetyTraining extends Models.Document {
   type: string;
   status: string;
 }
 
-// NEW: Define types for your chart data
-interface ChartDataPoint {
-  name: string;
-  value: number;
-}
+// This function now runs securely on the server
+async function getDashboardData() {
+  try {
+    const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
+    const usersCollectionId =
+      process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!;
+    const drillsCollectionId =
+      process.env.NEXT_PUBLIC_APPWRITE_DRILLS_COLLECTION_ID!;
+    const trainingsCollectionId =
+      process.env.NEXT_PUBLIC_APPWRITE_TRAININGS_COLLECTION_ID!;
+    const incidentsCollectionId =
+      process.env.NEXT_PUBLIC_APPWRITE_INCIDENTS_COLLECTION_ID!;
 
-interface ChartState {
-  drills: ChartDataPoint[];
-  workshops: ChartDataPoint[];
-  compliance: ChartDataPoint[];
-}
+    // Fetch all data concurrently
+    const [
+      employeeData,
+      volunteerData,
+      emergencyData,
+      completedDrills,
+      pendingDrills,
+      workshopsData,
+    ] = await Promise.all([
+      databases.listDocuments(databaseId, usersCollectionId),
+      databases.listDocuments(databaseId, usersCollectionId, [
+        Query.equal("isVolunteer", true),
+      ]),
+      databases.listDocuments(databaseId, incidentsCollectionId),
+      databases.listDocuments(databaseId, drillsCollectionId, [
+        Query.equal("status", "completed"),
+      ]),
+      databases.listDocuments(databaseId, drillsCollectionId, [
+        Query.equal("status", "pending"),
+      ]),
+      databases.listDocuments<SafetyTraining>(
+        databaseId,
+        trainingsCollectionId
+      ),
+    ]);
 
-const SuperAdminDashboardPage = () => {
-  const { user, loading: userLoading } = useUser();
-  const [stats, setStats] = useState({
-    employees: 0,
-    volunteers: 0,
-    emergencies: 0,
-  });
-
-  // UPDATED: Use the new ChartState type for useState
-  const [chartData, setChartData] = useState<ChartState>({
-    drills: [],
-    workshops: [],
-    compliance: [],
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      try {
-        const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
-        const usersCollectionId =
-          process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!;
-        const drillsCollectionId =
-          process.env.NEXT_PUBLIC_APPWRITE_DRILLS_COLLECTION_ID!;
-        const trainingsCollectionId =
-          process.env.NEXT_PUBLIC_APPWRITE_TRAININGS_COLLECTION_ID!;
-        const incidentsCollectionId =
-          process.env.NEXT_PUBLIC_APPWRITE_INCIDENTS_COLLECTION_ID!;
-
-        // The rest of your data fetching logic is correct...
-        const employeePromise = databases.listDocuments(
-          databaseId,
-          usersCollectionId
-        );
-        const volunteerPromise = databases.listDocuments(
-          databaseId,
-          usersCollectionId,
-          [Query.equal("isVolunteer", true)]
-        );
-        const emergenciesPromise = databases.listDocuments(
-          databaseId,
-          incidentsCollectionId
-        );
-        const completedDrillsPromise = databases.listDocuments(
-          databaseId,
-          drillsCollectionId,
-          [Query.equal("status", "completed")]
-        );
-        const pendingDrillsPromise = databases.listDocuments(
-          databaseId,
-          drillsCollectionId,
-          [Query.equal("status", "pending")]
-        );
-        const workshopsPromise = databases.listDocuments<SafetyTraining>(
-          databaseId,
-          trainingsCollectionId
-        );
-
-        const [
-          employeeData,
-          volunteerData,
-          emergencyData,
-          completedDrills,
-          pendingDrills,
-          workshopsData,
-        ] = await Promise.all([
-          employeePromise,
-          volunteerPromise,
-          emergenciesPromise,
-          completedDrillsPromise,
-          pendingDrillsPromise,
-          workshopsPromise,
-        ]);
-
-        setStats({
-          employees: employeeData.total,
-          volunteers: volunteerData.total,
-          emergencies: emergencyData.total,
-        });
-
-        const workshopTypes: { [key: string]: number } = {};
-        workshopsData.documents.forEach((doc) => {
-          workshopTypes[doc.type] = (workshopTypes[doc.type] || 0) + 1;
-        });
-        const processedWorkshops = Object.entries(workshopTypes).map(
-          ([name, value]) => ({ name, value })
-        );
-
-        // This will now work without a type error
-        setChartData({
-          drills: [
-            { name: "Completed", value: completedDrills.total },
-            { name: "Pending", value: pendingDrills.total },
-          ],
-          workshops: processedWorkshops,
-          compliance: [
-            {
-              name: "Workshops Done",
-              value: workshopsData.documents.filter(
-                (d) => d.status === "completed"
-              ).length,
-            },
-            { name: "Drills Done", value: completedDrills.total },
-          ],
-        });
-      } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (!userLoading) {
-      fetchDashboardData();
-    }
-  }, [userLoading]);
-
-  // Your loading and return JSX logic remains the same
-  if (loading) {
-    return (
-      <>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-        </div>
-        <div className="mt-6 grid gap-6 md:grid-cols-1 lg:grid-cols-3">
-          <Skeleton className="h-80" />
-          <Skeleton className="h-80" />
-          <Skeleton className="h-80" />
-        </div>
-      </>
+    // Process chart data
+    const workshopTypes: { [key: string]: number } = {};
+    workshopsData.documents.forEach((doc) => {
+      workshopTypes[doc.type] = (workshopTypes[doc.type] || 0) + 1;
+    });
+    const processedWorkshops = Object.entries(workshopTypes).map(
+      ([name, value]) => ({ name, value })
     );
+
+    // Return all processed data
+    return {
+      stats: {
+        employees: employeeData.total,
+        volunteers: volunteerData.total,
+        emergencies: emergencyData.total,
+      },
+      chartData: {
+        drills: [
+          { name: "Completed", value: completedDrills.total },
+          { name: "Pending", value: pendingDrills.total },
+        ],
+        workshops: processedWorkshops,
+        compliance: [
+          {
+            name: "Workshops Done",
+            value: workshopsData.documents.filter(
+              (d) => d.status === "completed"
+            ).length,
+          },
+          { name: "Drills Done", value: completedDrills.total },
+        ],
+      },
+    };
+  } catch (error) {
+    console.error("Failed to fetch dashboard data:", error);
+    // Return empty data on error
+    return {
+      stats: { employees: 0, volunteers: 0, emergencies: 0 },
+      chartData: { drills: [], workshops: [], compliance: [] },
+    };
   }
+}
+
+// The page is now an async Server Component
+export default async function SuperAdminDashboardPage() {
+  const { stats, chartData } = await getDashboardData();
+
+  // Note: We can't use the useUser hook on the server.
+  // The user's name would be fetched differently, but we'll use a placeholder for now.
+  const userName = "Super Admin";
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-brand-blue mb-6">
-        Welcome, {user?.fullName}!
-      </h1>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          title="Total Employees"
-          value={stats.employees}
-          icon={Users}
-          href="/dashboard/employees"
-          change="+15"
-          changeType="positive"
-        />
-        <StatCard
-          title="Total Volunteers"
-          value={stats.volunteers}
-          icon={UserCheck}
-          href="#"
-          change="+2"
-          changeType="positive"
-        />
-        <StatCard
-          title="Total Emergencies"
-          value={stats.emergencies}
-          icon={Siren}
-          href="/dashboard/emergencies"
-          change="-1"
-          changeType="negative"
-        />
-      </div>
-      <div className="mt-8 grid gap-6 md:grid-cols-1 lg:grid-cols-3">
-        <CircularGraph
-          title="Drill Alerts Status"
-          data={chartData.drills}
-          colors={COLORS}
-        />
-        <CircularGraph
-          title="Workshop Types"
-          data={chartData.workshops}
-          colors={COLORS}
-        />
-        <CircularGraph
-          title="Compliance Overview"
-          data={chartData.compliance}
-          colors={COLORS}
-        />
-      </div>
-      <div className="mt-8 grid gap-6 grid-cols-1 lg:grid-cols-5">
-        <div className="lg:col-span-2">
-          <MonthlyEmergenciesChart />
-        </div>
-        <div className="lg:col-span-3">
-          <SafetyClassesTable />
-        </div>
-      </div>
-    </div>
+    <DashboardUI stats={stats} chartData={chartData} userName={userName} />
   );
-};
-
-export default SuperAdminDashboardPage;
+}

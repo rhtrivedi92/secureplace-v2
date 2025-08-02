@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@/hooks/useUser";
-import { databases } from "@/lib/appwrite";
+import { databases } from "@/lib/appwrite-server";
 import { Query, Models } from "appwrite";
 import StatCard from "../components/StatCard";
 import CircularGraph from "../components/CircularGraph";

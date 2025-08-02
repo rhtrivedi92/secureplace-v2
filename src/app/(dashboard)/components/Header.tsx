@@ -2,15 +2,15 @@
 
 import { Bell, Mail, Menu } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useUser } from "@/hooks/useUser";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/UserContext";
 
 interface HeaderProps {
   toggleSidebar: () => void;
 }
 
 const Header = ({ toggleSidebar }: HeaderProps) => {
-  const { user } = useUser();
+  const { user, loading } = useAuth();
 
   return (
     <header className="flex items-center justify-between h-20 px-6 bg-white border-b">

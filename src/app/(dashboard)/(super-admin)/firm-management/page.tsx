@@ -1,4 +1,4 @@
-import { databases } from "@/lib/appwrite";
+import { databases } from "@/lib/appwrite-server";
 import { Firm, columns } from "./columns";
 import { DataTable } from "./data-table";
 

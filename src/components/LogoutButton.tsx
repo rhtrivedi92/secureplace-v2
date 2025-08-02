@@ -1,23 +1,18 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
-
-import { account } from "@/lib/appwrite";
 import { Button } from "@/components/ui/button";
+import { account } from "@/lib/appwrite";
 
 const LogoutButton = () => {
-  const router = useRouter();
-
   const handleLogout = async () => {
     try {
-      // Deletes the current active session
       await account.deleteSession("current");
-      // Redirects the user to the login page
-      router.push("/");
+      // Force a full page reload to the home page
+      window.location.assign("/");
     } catch (error) {
       console.error("Failed to log out:", error);
-      alert("Failed to log out. Please try again.");
+      alert("Failed to log out.");
     }
   };
 
