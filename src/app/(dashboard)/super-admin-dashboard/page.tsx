@@ -6,17 +6,28 @@ import { databases } from "@/lib/appwrite";
 import { Query, Models } from "appwrite";
 import StatCard from "../components/StatCard";
 import CircularGraph from "../components/CircularGraph";
-import { Users, UserCheck, Siren } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 import MonthlyEmergenciesChart from "../components/MonthlyEmergenciesChart";
 import SafetyClassesTable from "../components/SafetyClassesTable";
+import { Users, UserCheck, Siren } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Define the colors for our charts
-const COLORS = ["#001D49", "#FF5F15", "#F1F5F9", "#64748B"]; // Brand Blue, Orange, Slates
+const COLORS = ["#001D49", "#FF5F15", "#F1F5F9", "#64748B"];
 
-// Add an interface for the safety training document
 interface SafetyTraining extends Models.Document {
   type: string;
+  status: string;
+}
+
+// NEW: Define types for your chart data
+interface ChartDataPoint {
+  name: string;
+  value: number;
+}
+
+interface ChartState {
+  drills: ChartDataPoint[];
+  workshops: ChartDataPoint[];
+  compliance: ChartDataPoint[];
 }
 
 const SuperAdminDashboardPage = () => {
@@ -26,7 +37,9 @@ const SuperAdminDashboardPage = () => {
     volunteers: 0,
     emergencies: 0,
   });
-  const [chartData, setChartData] = useState({
+
+  // UPDATED: Use the new ChartState type for useState
+  const [chartData, setChartData] = useState<ChartState>({
     drills: [],
     workshops: [],
     compliance: [],
@@ -47,7 +60,7 @@ const SuperAdminDashboardPage = () => {
         const incidentsCollectionId =
           process.env.NEXT_PUBLIC_APPWRITE_INCIDENTS_COLLECTION_ID!;
 
-        // --- Fetch Stat Card Data ---
+        // The rest of your data fetching logic is correct...
         const employeePromise = databases.listDocuments(
           databaseId,
           usersCollectionId
@@ -61,8 +74,6 @@ const SuperAdminDashboardPage = () => {
           databaseId,
           incidentsCollectionId
         );
-
-        // --- Fetch Chart Data ---
         const completedDrillsPromise = databases.listDocuments(
           databaseId,
           drillsCollectionId,
@@ -73,8 +84,6 @@ const SuperAdminDashboardPage = () => {
           drillsCollectionId,
           [Query.equal("status", "pending")]
         );
-
-        // UPDATED: Fetch all safety training documents to process them
         const workshopsPromise = databases.listDocuments<SafetyTraining>(
           databaseId,
           trainingsCollectionId
@@ -96,14 +105,12 @@ const SuperAdminDashboardPage = () => {
           workshopsPromise,
         ]);
 
-        // Set state for stat cards
         setStats({
           employees: employeeData.total,
           volunteers: volunteerData.total,
           emergencies: emergencyData.total,
         });
 
-        // --- NEW: Process workshop data to group by type ---
         const workshopTypes: { [key: string]: number } = {};
         workshopsData.documents.forEach((doc) => {
           workshopTypes[doc.type] = (workshopTypes[doc.type] || 0) + 1;
@@ -111,15 +118,14 @@ const SuperAdminDashboardPage = () => {
         const processedWorkshops = Object.entries(workshopTypes).map(
           ([name, value]) => ({ name, value })
         );
-        // --- End of new processing logic ---
 
-        // Process and set state for charts
+        // This will now work without a type error
         setChartData({
           drills: [
             { name: "Completed", value: completedDrills.total },
             { name: "Pending", value: pendingDrills.total },
           ],
-          workshops: processedWorkshops, // Use the new processed data
+          workshops: processedWorkshops,
           compliance: [
             {
               name: "Workshops Done",
@@ -142,7 +148,7 @@ const SuperAdminDashboardPage = () => {
     }
   }, [userLoading]);
 
-  // The loading skeleton JSX remains the same
+  // Your loading and return JSX logic remains the same
   if (loading) {
     return (
       <>
@@ -160,7 +166,6 @@ const SuperAdminDashboardPage = () => {
     );
   }
 
-  // The main return JSX with the updated chart title
   return (
     <div>
       <h1 className="text-3xl font-bold text-brand-blue mb-6">
@@ -209,7 +214,6 @@ const SuperAdminDashboardPage = () => {
           colors={COLORS}
         />
       </div>
-
       <div className="mt-8 grid gap-6 grid-cols-1 lg:grid-cols-5">
         <div className="lg:col-span-2">
           <MonthlyEmergenciesChart />
