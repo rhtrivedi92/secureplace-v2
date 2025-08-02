@@ -23,9 +23,7 @@ export default function EmployeesPage() {
         const response = await databases.listDocuments(
           databaseId,
           collectionId,
-          [
-            Query.equal("firmId", user.firmId), // Fetch employees ONLY for this admin's firm
-          ]
+          [Query.equal("firmId", user.firmId)]
         );
         setEmployees(response.documents as unknown as Employee[]);
       } catch (error) {
