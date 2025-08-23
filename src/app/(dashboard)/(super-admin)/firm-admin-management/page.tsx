@@ -1,97 +1,231 @@
-import { databases, users } from "@/lib/appwrite-server";
-import { Query, Client, Users as AppwriteUsers } from "node-appwrite";
-import { FirmAdmins, columns } from "./columns";
-import { DataTable } from "./data-table";
-import { Firm } from "../firm-management/columns";
+// app/dashboard/super-admin/firm-admins/page.tsx
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { createServerSupabase } from "@/lib/supabase/server";
+import FirmAdminsClient from "./FirmAdmins.client";
+import { createClient } from "@supabase/supabase-js";
+import type { FirmOption, FirmAdminRow } from "@/lib/types";
 
-async function getFirmAdmins(): Promise<FirmAdmins[]> {
-  const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
-  const profilesCollectionId =
-    process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!;
-  const firmsCollectionId =
-    process.env.NEXT_PUBLIC_APPWRITE_FIRMS_COLLECTION_ID!;
-  const apiKey = process.env.APPWRITE_API_KEY;
+const REVALIDATE_PATH = "/dashboard/super-admin/firm-admins";
 
-  if (!apiKey) {
-    console.error(
-      "FATAL ERROR: The APPWRITE_API_KEY was not found in the server environment."
-    );
+/** Guard: only super_admin may access this page */
+async function requireSuperAdmin() {
+  const supabase = await createServerSupabase();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/");
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (me?.role !== "super_admin") {
+    redirect("/");
+  }
+}
+
+/** SSR: list firm admins with server-side filters from URL (?q=, ?firm=) */
+async function getFirmAdmins(
+  q?: string,
+  firmId?: string
+): Promise<FirmAdminRow[]> {
+  const supabase = await createServerSupabase();
+
+  let query = supabase
+    .from("profiles")
+    .select(
+      `
+      id,
+      full_name,
+      official_email,
+      role,
+      firm_id,
+      firms:firm_id ( name )
+    `
+    )
+    .eq("role", "firm_admin")
+    .order("full_name", { ascending: true });
+
+  if (q && q.trim()) {
+    query = query.ilike("full_name", `%${q}%`);
+  }
+  if (firmId && firmId !== "__ALL__") {
+    query = query.eq("firm_id", firmId);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("Failed to fetch firm admins:", error.message);
     return [];
   }
 
-  console.log("API Key is present. Initializing a special debug client.");
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    name: row.full_name ?? "",
+    email: row.official_email ?? "",
+    firmId: row.firm_id || null,
+    firmName: row.firms?.name ?? "N/A",
+  }));
+}
 
-  try {
-    // Create a new client right here for this specific task
-    const debugClient = new Client()
-      .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-      .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!)
-      .setKey(apiKey);
+/** SSR: list firms for dropdown */
+async function getFirms(): Promise<FirmOption[]> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase
+    .from("firms")
+    .select("id, name")
+    .order("name", { ascending: true });
 
-    const debugUsers = new AppwriteUsers(debugClient);
+  if (error) {
+    console.error("Failed to fetch firms:", error.message);
+    return [];
+  }
+  return (data ?? []).map((f: any) => ({ id: f.id, name: f.name ?? "" }));
+}
 
-    console.log("Attempting to list users with debug client...");
-    const usersResponse = await debugUsers.list();
-    console.log(`Success! Found ${usersResponse.total} users.`);
+/* -------------------- SERVER ACTIONS -------------------- */
 
-    // The rest of the logic remains the same
-    const profileResponse = await databases.listDocuments(
-      databaseId,
-      profilesCollectionId,
-      [Query.equal("role", "firm_admin")]
-    );
+export async function createFirmAdmin(formData: FormData) {
+  "use server";
 
-    const firmsResponse = await databases.listDocuments(
-      databaseId,
-      firmsCollectionId
-    );
-    const firmsMap = new Map(
-      firmsResponse.documents.map((f) => [f.$id, f.name])
-    );
+  const name = String(formData.get("name") || "").trim();
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
+  const password = String(formData.get("password") || "");
+  const firmId = String(formData.get("firmId") || "");
 
-    const firmAdmins = profileResponse.documents.map((profile) => {
-      const authUser = usersResponse.users.find(
-        (u) => u.$id === profile.userId
-      );
-      const firmName = firmsMap.get(profile.firmId) || "N/A";
+  if (!name || !email || !password || !firmId) return;
 
-      return {
-        ...profile,
-        name: authUser?.name || profile.fullName,
-        email: authUser?.email || "N/A",
-        firmName: firmName,
-      } as FirmAdmins;
+  const admin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+
+  const { data: created, error: createErr } = await admin.auth.admin.createUser(
+    {
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: name },
+    }
+  );
+  if (createErr) {
+    console.error("createUser error:", createErr.message);
+    return;
+  }
+  const userId = created.user.id;
+
+  const { error: profileErr } = await admin.from("profiles").upsert({
+    id: userId,
+    full_name: name,
+    official_email: email,
+    role: "firm_admin",
+    firm_id: firmId,
+  });
+  if (profileErr) console.error("profile upsert error:", profileErr.message);
+
+  revalidatePath(REVALIDATE_PATH);
+}
+
+export async function updateFirmAdmin(formData: FormData) {
+  "use server";
+
+  const id = String(formData.get("id") || "");
+  const name = String(formData.get("name") || "").trim();
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
+  const firmId = String(formData.get("firmId") || "") || null;
+
+  if (!id || !name || !email) return;
+
+  const admin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+
+  const { error: authErr } = await admin.auth.admin.updateUserById(id, {
+    email,
+    user_metadata: { full_name: name },
+  });
+  if (authErr) console.error("updateUserById error:", authErr.message);
+
+  const { error: profileErr } = await admin
+    .from("profiles")
+    .update({
+      full_name: name,
+      official_email: email,
+      firm_id: firmId,
+    })
+    .eq("id", id);
+  if (profileErr) console.error("profile update error:", profileErr.message);
+
+  revalidatePath(REVALIDATE_PATH);
+}
+
+export async function deleteFirmAdmin(formData: FormData) {
+  "use server";
+
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+
+  const admin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+
+  await admin
+    .from("profiles")
+    .delete()
+    .eq("id", id)
+    .then(({ error }) => {
+      if (error) console.error("profile delete error:", error.message);
     });
 
-    return firmAdmins;
-  } catch (error) {
-    console.error("Failed to fetch firm admins:", error);
-    return [];
-  }
+  const { error: delErr } = await admin.auth.admin.deleteUser(id);
+  if (delErr) console.error("deleteUser error:", delErr.message);
+
+  revalidatePath(REVALIDATE_PATH);
 }
 
-// Helper to fetch firms for the 'Add Admin' dropdown
-async function getFirms(): Promise<Firm[]> {
-  const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
-  const collectionId = process.env.NEXT_PUBLIC_APPWRITE_FIRMS_COLLECTION_ID!;
-  try {
-    const response = await databases.listDocuments(databaseId, collectionId);
-    return response.documents as unknown as Firm[];
-  } catch (error) {
-    return [];
-  }
-}
+export default async function Page({
+  searchParams,
+}: {
+  searchParams?: { q?: string; firm?: string };
+}) {
+  await requireSuperAdmin();
 
-export default async function FirmAdminsPage() {
-  const data = await getFirmAdmins();
-  const firms = await getFirms();
+  const sp = await searchParams;
+  const q = sp?.q ?? "";
+  const firm = sp?.firm ?? "__ALL__";
+
+  const [admins, firms] = await Promise.all([
+    getFirmAdmins(q, firm),
+    getFirms(),
+  ]);
 
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-3xl font-bold text-brand-blue mb-6">
         Firm Admin Management
       </h1>
-      <DataTable columns={columns} data={data} firms={firms} />
+      <FirmAdminsClient
+        admins={admins}
+        firms={firms}
+        initialQuery={q}
+        initialFirm={firm}
+        createFirmAdmin={createFirmAdmin}
+        updateFirmAdmin={updateFirmAdmin}
+        deleteFirmAdmin={deleteFirmAdmin}
+      />
     </div>
   );
 }

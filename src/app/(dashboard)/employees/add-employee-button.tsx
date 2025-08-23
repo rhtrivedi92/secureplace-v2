@@ -11,10 +11,16 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PlusCircle } from "lucide-react";
 import { useAuth } from "@/context/UserContext";
-import { account, databases } from "@/lib/appwrite";
-import { ID, Permission, Role } from "appwrite";
+import { functions } from "@/lib/appwrite";
 
 interface AddEmployeeButtonProps {
   onEmployeeAdded: () => void;
@@ -34,52 +40,35 @@ export function AddEmployeeButton({ onEmployeeAdded }: AddEmployeeButtonProps) {
     }
 
     const formData = new FormData(event.currentTarget);
-    const password = "Password@123";
-    const email = formData.get("officialEmail") as string;
-    const fullName = formData.get("fullName") as string;
+    const data = {
+      fullName: formData.get("fullName") as string,
+      email: formData.get("officialEmail") as string,
+      password: "Password@123", // Default password
+      role: formData.get("role") as string,
+      firmId: user.firmId,
+      employeeCode: formData.get("employeeCode") as string,
+    };
+
+    if (!data.role) {
+      setError("Please select a role for the new user.");
+      return;
+    }
 
     try {
-      // CORRECTED: The account.create method takes 4 arguments, not 5.
-      const newUser = await account.create(
-        ID.unique(),
-        email,
-        password,
-        fullName
+      // Call the Appwrite Function, passing the data as a stringified JSON payload
+      const functionId = "createUserProfile"; // <-- Paste your Function ID here
+      const result = await functions.createExecution(
+        functionId,
+        JSON.stringify(data)
       );
 
-      const profileData = {
-        userId: newUser.$id,
-        firmId: user.firmId,
-        role: "employee",
-        fullName: fullName,
-        officialEmail: email,
-        employeeCode: formData.get("employeeCode") as string,
-        contactNumber: formData.get("contactNumber") as string,
-        emergencyContactNumber: formData.get(
-          "emergencyContactNumber"
-        ) as string,
-        bloodGroup: formData.get("bloodGroup") as string,
-      };
-
-      const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
-      const collectionId =
-        process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!;
-
-      const permissions = [
-        Permission.update(Role.team(user.firmId)),
-        Permission.delete(Role.team(user.firmId)),
-      ];
-
-      await databases.createDocument(
-        databaseId,
-        collectionId,
-        ID.unique(),
-        profileData,
-        permissions
-      );
+      const response = JSON.parse(result.responseBody);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
 
       setIsOpen(false);
-      onEmployeeAdded();
+      onEmployeeAdded(); // Refresh the table
     } catch (e: any) {
       setError(e.message);
     }
@@ -130,6 +119,20 @@ export function AddEmployeeButton({ onEmployeeAdded }: AddEmployeeButtonProps) {
               className="col-span-3"
               required
             />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="role" className="text-right">
+              Role
+            </Label>
+            <Select name="role">
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="employee">Employee</SelectItem>
+                <SelectItem value="volunteer">Volunteer</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           {error && (
             <p className="col-span-4 text-center text-sm text-red-600">

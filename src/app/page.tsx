@@ -3,12 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowRight, AtSign, KeyRound, Eye, EyeOff } from "lucide-react";
 
-import { account, databases } from "@/lib/appwrite";
-import { Query } from "appwrite";
+import { createBrowserClient } from "@supabase/ssr"; // NEW
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,9 +28,19 @@ const formSchema = z.object({
   }),
 });
 
-export default function ProfessionalLoginPage() {
+// Minimal, page-local Supabase browser client to avoid changing your project structure
+function useSupabase() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  return supabase;
+}
+
+export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const supabase = useSupabase();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -42,39 +50,45 @@ export default function ProfessionalLoginPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setError(null);
     try {
-      // 1. Create the session in the browser
-      await account.createEmailPasswordSession(values.email, values.password);
+      // 1) Sign in with Supabase (browser)
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      });
+      if (signInError) throw signInError;
 
-      // 2. Get the logged-in user's account
-      const user = await account.get();
+      // 2) Get the logged-in user
+      const {
+        data: { user },
+        error: userErr,
+      } = await supabase.auth.getUser();
+      if (userErr) throw userErr;
+      if (!user) throw new Error("No user session found after login.");
 
-      // 3. Find the user's profile to get their role
-      const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
-      const collectionId =
-        process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!;
+      // 3) Read role from profiles (RLS allows user to read their own profile)
+      const { data: profile, error: profileErr } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
 
-      const profileResponse = await databases.listDocuments(
-        databaseId,
-        collectionId,
-        [Query.equal("userId", user.$id)]
-      );
+      if (profileErr) throw profileErr;
+      if (!profile?.role) throw new Error("User profile/role not found.");
 
-      if (profileResponse.documents.length === 0) {
-        throw new Error("User profile not found.");
-      }
-      const role = profileResponse.documents[0].role;
-
-      // 4. Redirect with a FULL PAGE RELOAD to ensure all state is fresh
-      if (role === "super_admin") {
+      // 4) Hard redirect to ensure fresh state (same as your original flow)
+      if (profile.role === "super_admin") {
         window.location.assign("/super-admin-dashboard");
-      } else if (role === "firm_admin") {
-        window.location.assign("/firm-admin-dashboard");
-      } else {
-        setError("You do not have access to a dashboard.");
+        return;
       }
+      if (profile.role === "firm_admin") {
+        window.location.assign("/firm-admin-dashboard");
+        return;
+      }
+
+      setError("You do not have access to a dashboard.");
     } catch (e: any) {
-      setError(e.message || "Login failed. Please check your credentials.");
-      console.error("Login process failed:", e);
+      console.error("Supabase login failed:", e);
+      setError(e?.message ?? "Login failed. Please check your credentials.");
     }
   }
 
@@ -93,6 +107,7 @@ export default function ProfessionalLoginPage() {
           <Image src={"/images/logo.png"} height={165} width={165} alt="Logo" />
         </div>
       </div>
+
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-md space-y-8">
           <div>
@@ -103,6 +118,7 @@ export default function ProfessionalLoginPage() {
               Enter your credentials to access the employee safety portal.
             </p>
           </div>
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -124,6 +140,7 @@ export default function ProfessionalLoginPage() {
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="password"
@@ -154,9 +171,11 @@ export default function ProfessionalLoginPage() {
                   </FormItem>
                 )}
               />
+
               {error && (
                 <p className="text-sm font-medium text-red-600">{error}</p>
               )}
+
               <div className="flex items-center justify-end">
                 <a
                   href="#"
@@ -165,6 +184,7 @@ export default function ProfessionalLoginPage() {
                   Forgot password?
                 </a>
               </div>
+
               <Button
                 type="submit"
                 className="w-full h-12 text-md bg-brand-orange hover:bg-orange-600 text-white font-semibold shadow-md transition-transform transform hover:scale-105"

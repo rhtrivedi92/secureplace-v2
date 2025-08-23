@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-// NEW: Import usePathname
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { useUser } from "@/hooks/useUser";
-import { account } from "@/lib/appwrite";
+import { useMemo, useState } from "react";
+import { useUser } from "@/hooks/useUser"; // must return { user?: { role?: string } }
+import { createBrowserClient } from "@supabase/ssr";
+
 import {
   LayoutDashboard,
   Building,
@@ -23,31 +23,28 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Define the structure for a navigation item
 interface NavItem {
   href: string;
   label: string;
   icon: React.ElementType;
 }
 
-// Define navigation items for Super Admin
-const superAdminNavItems: NavItem[] = [
+const SUPER_ADMIN_ITEMS: NavItem[] = [
   { href: "/super-admin-dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/firm-management", label: "Firms", icon: Building },
   { href: "/firm-admin-management", label: "Firm Admins", icon: UserCog },
   { href: "/locations", label: "Locations", icon: MapPin },
-  { href: "/dashboard/employees", label: "Employees", icon: Users },
+  { href: "/employees", label: "Employees", icon: Users },
   { href: "/dashboard/emergencies", label: "Emergencies", icon: Siren },
   { href: "/dashboard/alerts", label: "Alerts", icon: BellRing },
   { href: "/dashboard/drills", label: "Drills", icon: UserSquare },
   { href: "/dashboard/training", label: "Training", icon: BookOpen },
 ];
 
-// Define navigation items for Firm Admin
-const firmAdminNavItems: NavItem[] = [
+const FIRM_ADMIN_ITEMS: NavItem[] = [
   { href: "/firm-admin-dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/firm-profile", label: "Firm Profile", icon: Building },
-  { href: "/dashboard/employees", label: "Employees", icon: Users },
+  { href: "/employees", label: "Employees", icon: Users },
   { href: "/locations", label: "Locations", icon: MapPin },
   { href: "/dashboard/training", label: "Training", icon: BookOpen },
   { href: "/dashboard/emergencies", label: "Emergencies", icon: Siren },
@@ -55,30 +52,40 @@ const firmAdminNavItems: NavItem[] = [
   { href: "/dashboard/drills", label: "Drills", icon: UserSquare },
 ];
 
+// Page-local supabase client (browser)
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  return createBrowserClient(url, anon);
+}
+
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(true);
-  const [navItems, setNavItems] = useState<NavItem[]>([]);
-  const { user } = useUser();
-  const router = useRouter();
-  // NEW: Get the current URL pathname
+  const { user } = useUser(); // should contain role: "super_admin" | "firm_admin" | etc.
   const pathname = usePathname();
+  const router = useRouter();
 
-  useEffect(() => {
-    if (user?.role === "super_admin") {
-      setNavItems(superAdminNavItems);
-    } else if (user?.role === "firm_admin") {
-      setNavItems(firmAdminNavItems);
-    }
-  }, [user]);
+  // Choose nav items based on role (memoized)
+  const navItems = useMemo<NavItem[]>(() => {
+    if (user?.role === "super_admin") return SUPER_ADMIN_ITEMS;
+    if (user?.role === "firm_admin") return FIRM_ADMIN_ITEMS;
+    // Unknown/Loading role → empty list (prevents flash of wrong items)
+    return [];
+  }, [user?.role]);
 
-  const toggleSidebar = () => setIsOpen(!isOpen);
+  const toggleSidebar = () => setIsOpen((v) => !v);
 
   const handleLogout = async () => {
     try {
-      await account.deleteSession("current");
-      router.push("/");
-    } catch (error) {
-      console.error("Failed to log out:", error);
+      const res = await fetch("/api/auth/signout", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to sign out");
+      }
+      // Hard navigate to clear all client state
+      window.location.assign("/");
+    } catch (err) {
+      console.error("Failed to log out:", err);
     }
   };
 
@@ -111,40 +118,51 @@ const Sidebar = () => {
       <nav className="flex-1 px-4 py-4 space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon;
-          // NEW: Check if the current link is active
-          const isActive = pathname === item.href;
+          // active for exact and nested routes
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/" && pathname.startsWith(item.href));
 
           return (
             <Link
-              key={item.label}
+              key={item.href}
               href={item.href}
-              // UPDATED: Apply styles conditionally
-              className={`flex items-center p-2 rounded-md ${
+              aria-current={isActive ? "page" : undefined}
+              title={item.label}
+              className={`flex items-center p-2 rounded-md transition-colors ${
                 isActive
-                  ? "bg-brand-blue text-white" // Style for the active link
-                  : "text-slate-700 hover:bg-brand-blue hover:text-white" // Style for inactive links
+                  ? "bg-brand-blue text-white"
+                  : "text-slate-700 hover:bg-brand-blue hover:text-white"
               }`}
             >
-              <Icon className="h-6 w-6" />
-              {isOpen && <span className="ml-3">{item.label}</span>}
+              <Icon className="h-6 w-6 shrink-0" />
+              {isOpen && <span className="ml-3 truncate">{item.label}</span>}
             </Link>
           );
         })}
+
+        {/* Optional: show a subtle hint while role is loading */}
+        {navItems.length === 0 && (
+          <div className="text-sm text-slate-400 px-2">Loading menu…</div>
+        )}
       </nav>
 
       <div className="border-t p-4 space-y-2">
         <button
           onClick={handleLogout}
-          className="flex items-center w-full p-2 text-red-500 hover:bg-red-500 hover:text-white rounded-md"
+          className="flex items-center w-full p-2 text-red-500 hover:bg-red-500 hover:text-white rounded-md transition-colors"
         >
           <LogOut className="h-6 w-6" />
           {isOpen && <span className="ml-3 font-semibold">Logout</span>}
         </button>
+
         <Button
           variant="outline"
           size="icon"
           className="w-full"
           onClick={toggleSidebar}
+          aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
+          title={isOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
           {isOpen ? (
             <ChevronsLeft className="h-6 w-6" />
