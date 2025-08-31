@@ -1,7 +1,8 @@
 "use client";
 import Image from "next/image";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
+import { Calendar, Trash2 } from "lucide-react";
 
 const scheduledClasses = [
   {
@@ -33,17 +34,51 @@ const scheduledClasses = [
   },
 ];
 
-const statusStyles: Record<string, string> = {
-  approved: "bg-emerald-100 text-emerald-700",
-  pending: "bg-yellow-100 text-yellow-700",
-};
-
 const statusBtnStyles: Record<string, string> = {
   approved: "bg-emerald-500 text-white hover:bg-emerald-600",
   pending: "bg-yellow-400 text-white hover:bg-yellow-500",
 };
 
+function CancelModal({
+  open,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-200/70">
+      <div className="bg-white rounded-xl p-10 flex flex-col items-center shadow-lg min-w-[350px]">
+        <Trash2 className="w-16 h-16 text-brand-orange mb-4" />
+        <div className="text-lg font-medium mb-6 text-center">
+          Are you sure cancel this classes
+        </div>
+        <div className="flex gap-4">
+          <Button variant="outline" className="min-w-[70px]" onClick={onClose}>
+            No
+          </Button>
+          <Button className="bg-brand-orange min-w-[70px]" onClick={onConfirm}>
+            Yes
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ScheduledClassesPage() {
+  const [cancelId, setCancelId] = useState<string | null>(null);
+
+  const handleCancel = (id: string) => setCancelId(id);
+  const handleClose = () => setCancelId(null);
+  const handleConfirm = () => {
+    // Add your cancel logic here (API call, state update, etc.)
+    setCancelId(null);
+  };
+
   return (
     <div>
       <nav className="text-sm text-gray-500 mb-2">Home &gt; Scheduled Classes</nav>
@@ -87,6 +122,7 @@ export default function ScheduledClassesPage() {
               <Button
                 variant="outline"
                 className="flex-1 border-gray-300 text-gray-700"
+                onClick={() => handleCancel(cls.id)}
               >
                 Cancel
               </Button>
@@ -94,6 +130,11 @@ export default function ScheduledClassesPage() {
           </div>
         ))}
       </div>
+      <CancelModal
+        open={!!cancelId}
+        onClose={handleClose}
+        onConfirm={handleConfirm}
+      />
     </div>
   );
 }
