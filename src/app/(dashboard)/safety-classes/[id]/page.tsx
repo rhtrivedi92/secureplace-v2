@@ -8,11 +8,11 @@ type SafetyClass = {
   description: string;
   duration: number;
   videoUrl: string;
-  thumbnailUrl: string;
   category: string;
   isRemote: boolean;
   createdAt: string;
   firmId: string | null;
+  thumbnailUrl: string | null;
 };
 
 async function requireAdmin() {
@@ -44,7 +44,7 @@ async function getSafetyClass(id: string, firmId: string | null): Promise<Safety
       description: "Learn essential safety protocols and best practices to prevent workplace accidents and injuries.",
       duration: 15,
       videoUrl: "https://example.com/video1.mp4",
-      thumbnailUrl: "/images/safety-training-1.jpg",
+      thumbnailUrl: "/images/safety-class-demo.png",
       category: "General Safety",
       isRemote: false,
       createdAt: "2024-01-15T10:00:00Z",
@@ -56,7 +56,7 @@ async function getSafetyClass(id: string, firmId: string | null): Promise<Safety
       description: "Comprehensive guide to fire safety protocols and emergency evacuation procedures.",
       duration: 20,
       videoUrl: "https://example.com/video2.mp4",
-      thumbnailUrl: "/images/fire-safety.jpg",
+      thumbnailUrl: "/images/safety-class-demo.png",
       category: "Emergency Response",
       isRemote: false,
       createdAt: "2024-01-10T14:30:00Z",
@@ -68,7 +68,7 @@ async function getSafetyClass(id: string, firmId: string | null): Promise<Safety
       description: "Essential first aid training for workplace medical emergencies.",
       duration: 25,
       videoUrl: "https://example.com/video3.mp4",
-      thumbnailUrl: "/images/first-aid.jpg",
+      thumbnailUrl: "/images/safety-class-demo.png",
       category: "Medical",
       isRemote: false,
       createdAt: "2024-01-08T09:15:00Z",
@@ -80,7 +80,7 @@ async function getSafetyClass(id: string, firmId: string | null): Promise<Safety
       description: "Safe handling procedures for chemicals and hazardous materials in the workplace.",
       duration: 18,
       videoUrl: "https://example.com/video4.mp4",
-      thumbnailUrl: "/images/chemical-safety.jpg",
+      thumbnailUrl: "/images/safety-class-demo.png",
       category: "Chemical Safety",
       isRemote: false,
       createdAt: "2024-01-05T16:45:00Z",
@@ -92,7 +92,7 @@ async function getSafetyClass(id: string, firmId: string | null): Promise<Safety
       description: "Learn how to design ergonomic workspaces to prevent musculoskeletal injuries.",
       duration: 22,
       videoUrl: "https://example.com/video5.mp4",
-      thumbnailUrl: "/images/ergonomics.jpg",
+      thumbnailUrl: "/images/safety-class-demo.png",
       category: "Ergonomics",
       isRemote: false,
       createdAt: "2024-01-03T11:20:00Z",
@@ -104,7 +104,7 @@ async function getSafetyClass(id: string, firmId: string | null): Promise<Safety
       description: "Essential cybersecurity training to protect sensitive company and personal data.",
       duration: 16,
       videoUrl: "https://example.com/video6.mp4",
-      thumbnailUrl: "/images/cybersecurity.jpg",
+      thumbnailUrl: "/images/safety-class-demo.png",
       category: "Cybersecurity",
       isRemote: true,
       createdAt: "2024-01-01T13:00:00Z",
@@ -131,7 +131,7 @@ export default async function SafetyClassPage({
 
   return (
     <div className="container mx-auto">
-      <SafetyClassDetails 
+      <SafetyClassDetails
         safetyClass={safetyClass}
         isSuperAdmin={me.role === "super_admin"}
       />

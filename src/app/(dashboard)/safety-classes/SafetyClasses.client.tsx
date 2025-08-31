@@ -123,8 +123,8 @@ export default function SafetyClassesClient({
         <div className="flex w-48 bg-gray-100 rounded-lg overflow-hidden border border-[#D8D8D8]">
           <button
             className={`flex-1 py-2 text-sm font-medium transition-colors ${type === "remote"
-                ? "bg-brand-orange text-white"
-                : "text-gray-700 hover:bg-gray-200"
+              ? "bg-brand-orange text-white"
+              : "text-gray-700 hover:bg-gray-200"
               }`}
             onClick={() => handleTypeChange("remote")}
           >
@@ -132,8 +132,8 @@ export default function SafetyClassesClient({
           </button>
           <button
             className={`flex-1 py-2 text-sm font-medium transition-colors ${type === "in-person"
-                ? "bg-brand-orange text-white"
-                : "text-gray-700 hover:bg-gray-200"
+              ? "bg-brand-orange text-white"
+              : "text-gray-700 hover:bg-gray-200"
               }`}
             onClick={() => handleTypeChange("in-person")}
           >
@@ -162,17 +162,24 @@ export default function SafetyClassesClient({
                 <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
                   <div className="text-center">
                     <div className="w-16 h-16 bg-brand-orange rounded-full flex items-center justify-center mx-auto mb-2">
-                      <Play className="h-8 w-8 text-white ml-1" />
+                      {/* <Play className="h-8 w-8 text-white ml-1" /> */}
+                      <Image
+                        src={safetyClass.thumbnailUrl}
+                        alt={safetyClass.title}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                      />
                     </div>
                     <p className="text-sm text-gray-600 font-medium">Safety Training</p>
                   </div>
                 </div>
 
                 {/* Duration badge */}
-                <div className="absolute top-3 right-3 bg-black/70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                {/* <div className="absolute top-3 right-3 bg-black/70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {safetyClass.duration} min
-                </div>
+                </div> */}
 
                 {/* Remote/In-person badge */}
                 <div className={`absolute top-3 left-3 px-2 py-1 rounded text-xs font-medium ${safetyClass.isRemote
