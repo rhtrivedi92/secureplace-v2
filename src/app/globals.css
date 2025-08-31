@@ -172,3 +172,47 @@
   cursor: pointer;
   border: none;
 }
+
+/* Calendar Styles */
+.calendar-day {
+  transition: all 0.2s ease-in-out;
+}
+
+.calendar-day:hover {
+  transform: scale(1.05);
+}
+
+.calendar-day:active {
+  transform: scale(0.95);
+}
+
+/* Time Slot Styles */
+.time-slot {
+  transition: all 0.2s ease-in-out;
+}
+
+.time-slot:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 95, 21, 0.15);
+}
+
+/* Mobile Touch Improvements */
+@media (max-width: 640px) {
+  .calendar-day {
+    min-height: 32px;
+    touch-action: manipulation;
+  }
+  
+  .time-slot {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  .time-slot:hover {
+    transform: none;
+  }
+  
+  .calendar-day:hover {
+    transform: none;
+  }
+}

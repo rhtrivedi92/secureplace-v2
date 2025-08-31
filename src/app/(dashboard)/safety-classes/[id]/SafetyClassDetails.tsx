@@ -6,6 +6,7 @@ import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, RotateCcw, Clock, U
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import SchedulingModal from "./SchedulingModal";
 
 type SafetyClass = {
   id: string;
@@ -34,6 +35,7 @@ export default function SafetyClassDetails({ safetyClass, isSuperAdmin }: Safety
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [isSchedulingModalOpen, setIsSchedulingModalOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const togglePlay = () => {
@@ -87,9 +89,7 @@ export default function SafetyClassDetails({ safetyClass, isSuperAdmin }: Safety
   };
 
   const handleSchedule = () => {
-    // In a real implementation, this would open a scheduling modal or redirect to scheduling page
-    console.log("Scheduling safety class:", safetyClass.id);
-    alert("Scheduling functionality would be implemented here");
+    setIsSchedulingModalOpen(true);
   };
 
   const benefits = [
@@ -305,17 +305,24 @@ export default function SafetyClassDetails({ safetyClass, isSuperAdmin }: Safety
                   ))}
                 </ul>
 
-                <Button
-                    onClick={handleSchedule}
-                    className="mt-6 bg-brand-orange hover:bg-brand-orange/90 text-white"
-                  >
-                    Schedule
-                  </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-}
+                                 <Button
+                     onClick={handleSchedule}
+                     className="mt-6 bg-brand-orange hover:bg-brand-orange/90 text-white"
+                   >
+                     Schedule
+                   </Button>
+               </div>
+             </CardContent>
+           </Card>
+         </div>
+       </div>
+
+       {/* Scheduling Modal */}
+       <SchedulingModal
+         isOpen={isSchedulingModalOpen}
+         onClose={() => setIsSchedulingModalOpen(false)}
+         safetyClass={safetyClass}
+       />
+     </div>
+   );
+ }
