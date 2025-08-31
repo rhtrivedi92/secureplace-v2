@@ -20,6 +20,8 @@ import {
   BellRing,
   BookOpen,
   UserCog,
+  Calendar,
+  GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -35,12 +37,12 @@ const SUPER_ADMIN_ITEMS: NavItem[] = [
   { href: "/firm-admin-management", label: "Firm Admins", icon: UserCog },
   { href: "/locations", label: "Locations", icon: MapPin },
   { href: "/employees", label: "Employees", icon: Users },
-  { href: "/safety-classes", label: "Safety Classes", icon: BookOpen },
+  { href: "/safety-classes", label: "Safety Classes", icon: GraduationCap },
   { href: "/dashboard/emergencies", label: "Emergencies", icon: Siren },
   { href: "/dashboard/alerts", label: "Alerts", icon: BellRing },
   { href: "/dashboard/drills", label: "Drills", icon: UserSquare },
   { href: "/dashboard/training", label: "Training", icon: BookOpen },
-  { href: "/scheduled-classes", label: "Scheduled Classes", icon: BookOpen },
+  { href: "/scheduled-classes", label: "Scheduled Classes", icon: Calendar },
 ];
 
 const FIRM_ADMIN_ITEMS: NavItem[] = [
@@ -48,11 +50,11 @@ const FIRM_ADMIN_ITEMS: NavItem[] = [
   { href: "/dashboard/firm-profile", label: "Firm Profile", icon: Building },
   { href: "/employees", label: "Employees", icon: Users },
   { href: "/locations", label: "Locations", icon: MapPin },
-  { href: "/safety-classes", label: "Safety Classes", icon: BookOpen },
+  { href: "/safety-classes", label: "Safety Classes", icon: GraduationCap },
   { href: "/dashboard/emergencies", label: "Emergencies", icon: Siren },
   { href: "/dashboard/alerts", label: "Alerts", icon: BellRing },
   { href: "/dashboard/drills", label: "Drills", icon: UserSquare },
-  { href: "/scheduled-classes", label: "Scheduled Classes", icon: BookOpen },
+  { href: "/scheduled-classes", label: "Scheduled Classes", icon: Calendar },
 ];
 
 // Page-local supabase client (browser)
