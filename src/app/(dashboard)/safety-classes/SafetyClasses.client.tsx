@@ -13,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import VideoPlayer from "./VideoPlayer";
 import AddSafetyClassForm from "./AddSafetyClassForm";
 
 type SafetyClass = {
@@ -71,8 +70,6 @@ export default function SafetyClassesClient({
   const category = sp.get("category") ?? initialCategory ?? "all";
   const type = sp.get("type") ?? initialType ?? "in-person";
 
-  const [selectedVideo, setSelectedVideo] = useState<SafetyClass | null>(null);
-  const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false);
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
 
   const handleCategoryChange = (newCategory: string) => {
@@ -84,13 +81,7 @@ export default function SafetyClassesClient({
   };
 
   const handleExploreWorkshop = (safetyClass: SafetyClass) => {
-    setSelectedVideo(safetyClass);
-    setIsVideoPlayerOpen(true);
-  };
-
-  const handleCloseVideoPlayer = () => {
-    setIsVideoPlayerOpen(false);
-    setSelectedVideo(null);
+    router.push(`/safety-classes/${safetyClass.id}`);
   };
 
   const handleAddSafetyClass = (data: any) => {
@@ -245,17 +236,7 @@ export default function SafetyClassesClient({
         onSubmit={handleAddSafetyClass}
       />
 
-      {/* Video Player Modal */}
-      {selectedVideo && (
-        <VideoPlayer
-          videoUrl={selectedVideo.videoUrl}
-          title={selectedVideo.title}
-          description={selectedVideo.description}
-          duration={selectedVideo.duration}
-          isOpen={isVideoPlayerOpen}
-          onClose={handleCloseVideoPlayer}
-        />
-      )}
+
     </div>
   );
 }
