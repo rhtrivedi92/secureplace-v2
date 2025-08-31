@@ -40,6 +40,7 @@ const SUPER_ADMIN_ITEMS: NavItem[] = [
   { href: "/dashboard/alerts", label: "Alerts", icon: BellRing },
   { href: "/dashboard/drills", label: "Drills", icon: UserSquare },
   { href: "/dashboard/training", label: "Training", icon: BookOpen },
+  { href: "/scheduled-classes", label: "Scheduled Classes", icon: BookOpen },
 ];
 
 const FIRM_ADMIN_ITEMS: NavItem[] = [
@@ -51,6 +52,7 @@ const FIRM_ADMIN_ITEMS: NavItem[] = [
   { href: "/dashboard/emergencies", label: "Emergencies", icon: Siren },
   { href: "/dashboard/alerts", label: "Alerts", icon: BellRing },
   { href: "/dashboard/drills", label: "Drills", icon: UserSquare },
+  { href: "/scheduled-classes", label: "Scheduled Classes", icon: BookOpen },
 ];
 
 // Page-local supabase client (browser)
@@ -92,9 +94,8 @@ const Sidebar = () => {
 
   return (
     <aside
-      className={`relative hidden lg:flex flex-col bg-white border-r transition-all duration-300 ${
-        isOpen ? "w-64" : "w-20"
-      }`}
+      className={`relative hidden lg:flex flex-col bg-white border-r transition-all duration-300 ${isOpen ? "w-64" : "w-20"
+        }`}
     >
       <div className="flex items-center justify-center h-20 px-4 border-b">
         {isOpen ? (
@@ -130,11 +131,10 @@ const Sidebar = () => {
               href={item.href}
               aria-current={isActive ? "page" : undefined}
               title={item.label}
-              className={`flex items-center p-2 rounded-md transition-colors ${
-                isActive
+              className={`flex items-center p-2 rounded-md transition-colors ${isActive
                   ? "bg-brand-blue text-white"
                   : "text-slate-700 hover:bg-brand-blue hover:text-white"
-              }`}
+                }`}
             >
               <Icon className="h-6 w-6 shrink-0" />
               {isOpen && <span className="ml-3 truncate">{item.label}</span>}
