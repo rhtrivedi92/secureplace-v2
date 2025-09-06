@@ -41,7 +41,7 @@ const SUPER_ADMIN_ITEMS: NavItem[] = [
   { href: "/emergencies", label: "Emergencies", icon: Siren },
   // { href: "/dashboard/alerts", label: "Alerts", icon: BellRing },
   { href: "drills", label: "Drills", icon: UserSquare },
-  { href: "/dashboard/training", label: "Training", icon: BookOpen },
+  // { href: "/dashboard/training", label: "Training", icon: BookOpen },
   { href: "/scheduled-classes", label: "Scheduled Classes", icon: Calendar },
 ];
 
@@ -53,7 +53,7 @@ const FIRM_ADMIN_ITEMS: NavItem[] = [
   { href: "/safety-classes", label: "Safety Classes", icon: GraduationCap },
   { href: "/emergencies", label: "Emergencies", icon: Siren },
   // { href: "/dashboard/alerts", label: "Alerts", icon: BellRing },
-  { href: "/drills", label: "Drills", icon: UserSquare },
+  // { href: "/drills", label: "Drills", icon: UserSquare },
   { href: "/scheduled-classes", label: "Scheduled Classes", icon: Calendar },
 ];
 
