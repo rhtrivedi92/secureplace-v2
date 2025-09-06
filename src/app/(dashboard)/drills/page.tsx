@@ -62,7 +62,7 @@ const data = [
 
 export default function DrillAlertLogPage() {
   return (
-    <div className="p-8">
+    <div>
       <nav className="text-gray-500 text-sm mb-2 flex items-center gap-2">
         <span>Home</span>
         <span>&gt;</span>
