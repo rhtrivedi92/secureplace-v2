@@ -74,11 +74,11 @@ function DrillDetailModal({ open, onClose, drill }: { open: boolean; onClose: ()
         <div className="flex justify-between text-sm mb-2">
           <div>
             <span className="font-semibold">Drill Date :</span>{" "}
-            <span className="text-brand-blue">{drill.date}</span>
+            <span className="text-[#3E2FB7] font-bold">{drill.date}</span>
           </div>
           <div>
             <span className="font-semibold">Drill Time :</span>{" "}
-            <span className="text-brand-blue">{drill.time}</span>
+            <span className="text-[#3E2FB7] font-bold">{drill.time}</span>
           </div>
         </div>
         <div className="flex items-center text-gray-700 text-sm mb-2">
@@ -95,7 +95,7 @@ function DrillDetailModal({ open, onClose, drill }: { open: boolean; onClose: ()
         <hr className="my-2" />
         <div className="text-sm">
           <span className="font-semibold">Drill Purpose :</span>{" "}
-          <span className="text-brand-blue">{drill.purpose}</span>
+          <span className="text-[#3E2FB7] font-bold">{drill.purpose}</span>
         </div>
         <div className="flex justify-end mt-4">
           <button
