@@ -38,7 +38,7 @@ const SUPER_ADMIN_ITEMS: NavItem[] = [
   { href: "/locations", label: "Locations", icon: MapPin },
   { href: "/employees", label: "Employees", icon: Users },
   { href: "/safety-classes", label: "Safety Classes", icon: GraduationCap },
-  { href: "/dashboard/emergencies", label: "Emergencies", icon: Siren },
+  { href: "/emergencies", label: "Emergencies", icon: Siren },
   { href: "/dashboard/alerts", label: "Alerts", icon: BellRing },
   { href: "/dashboard/drills", label: "Drills", icon: UserSquare },
   { href: "/dashboard/training", label: "Training", icon: BookOpen },
