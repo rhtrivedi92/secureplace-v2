@@ -18,7 +18,7 @@ async function requireSuperAdmin() {
   if (!user) redirect("/");
 
   const { data: me } = await supabase
-    .from("profiles")
+    .from("user_profiles")
     .select("role")
     .eq("id", user.id)
     .single();
@@ -36,11 +36,12 @@ async function getFirmAdmins(
   const supabase = await createServerSupabase();
 
   let query = supabase
-    .from("profiles")
+    .from("user_profiles")
     .select(
       `
       id,
-      full_name,
+      first_name,
+      last_name,
       official_email,
       role,
       firm_id,
@@ -48,10 +49,10 @@ async function getFirmAdmins(
     `
     )
     .eq("role", "firm_admin")
-    .order("full_name", { ascending: true });
+    .order("first_name", { ascending: true });
 
   if (q && q.trim()) {
-    query = query.ilike("full_name", `%${q}%`);
+    query = query.or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%`);
   }
   if (firmId && firmId !== "__ALL__") {
     query = query.eq("firm_id", firmId);
@@ -65,7 +66,7 @@ async function getFirmAdmins(
 
   return (data ?? []).map((row: any) => ({
     id: row.id,
-    name: row.full_name ?? "",
+    name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
     email: row.official_email ?? "",
     firmId: row.firm_id || null,
     firmName: row.firms?.name ?? "N/A",
@@ -121,12 +122,15 @@ export async function createFirmAdmin(formData: FormData) {
   }
   const userId = created.user.id;
 
-  const { error: profileErr } = await admin.from("profiles").upsert({
+  const { error: profileErr } = await admin.from("user_profiles").upsert({
     id: userId,
-    full_name: name,
+    email: email,
+    first_name: name.split(' ')[0] || '',
+    last_name: name.split(' ').slice(1).join(' ') || '',
     official_email: email,
     role: "firm_admin",
     firm_id: firmId,
+    is_active: true,
   });
   if (profileErr) console.error("profile upsert error:", profileErr.message);
 
@@ -158,9 +162,10 @@ export async function updateFirmAdmin(formData: FormData) {
   if (authErr) console.error("updateUserById error:", authErr.message);
 
   const { error: profileErr } = await admin
-    .from("profiles")
+    .from("user_profiles")
     .update({
-      full_name: name,
+      first_name: name.split(' ')[0] || '',
+      last_name: name.split(' ').slice(1).join(' ') || '',
       official_email: email,
       firm_id: firmId,
     })
@@ -183,7 +188,7 @@ export async function deleteFirmAdmin(formData: FormData) {
   );
 
   await admin
-    .from("profiles")
+    .from("user_profiles")
     .delete()
     .eq("id", id)
     .then(({ error }) => {

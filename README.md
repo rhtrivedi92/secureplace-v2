@@ -41,3 +41,11 @@ Run powershell as admin
 And Run this command
 After that use "pnpm install" to install all dependencies.
 pnpm dev to run the project.
+
+## Sql script file execution list
+1) supabase-schema.sql
+2) supabase-rls-policies.sql
+3) script3.sql
+4) script4.sql
+5) script5.sql
+6) script6.sql

@@ -66,14 +66,47 @@ export default function LoginPage() {
       if (!user) throw new Error("No user session found after login.");
 
       // 3) Read role from profiles (RLS allows user to read their own profile)
-      const { data: profile, error: profileErr } = await supabase
+      let { data: profile, error: profileErr } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
-      if (profileErr) throw profileErr;
+      // If profile doesn't exist, create it
+      if (profileErr || !profile) {
+        console.log("Profile not found, creating default profile...");
+        const { error: createErr } = await supabase
+          .from("user_profiles")
+          .insert({
+            id: user.id,
+            email: user.email || "",
+            first_name: user.user_metadata?.first_name || "",
+            last_name: user.user_metadata?.last_name || "",
+            role: "super_admin",
+            is_active: true,
+            last_login_at: new Date().toISOString()
+          });
+        
+        if (createErr) throw createErr;
+        
+        // Re-fetch the profile
+        const { data: newProfile, error: newProfileErr } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+        
+        if (newProfileErr) throw newProfileErr;
+        profile = newProfile;
+      }
+
       if (!profile?.role) throw new Error("User profile/role not found.");
+
+      // Update last login time
+      await supabase
+        .from("user_profiles")
+        .update({ last_login_at: new Date().toISOString() })
+        .eq("id", user.id);
 
       // 4) Hard redirect to ensure fresh state (same as your original flow)
       if (profile.role === "super_admin") {

@@ -79,7 +79,7 @@ export const useUser = () => {
           .from("profiles")
           .select("full_name, role, firm_id")
           .eq("id", authUser.id)
-          .single();
+          .maybeSingle();
 
         if (profileErr) {
           // If the row isn't there yet, just return auth info
@@ -114,7 +114,7 @@ export const useUser = () => {
           .from("profiles")
           .select("full_name, role, firm_id")
           .eq("id", authUser.id)
-          .single();
+          .maybeSingle();
 
         setUser(buildSession(authUser, profile ?? null));
       } catch (e) {
