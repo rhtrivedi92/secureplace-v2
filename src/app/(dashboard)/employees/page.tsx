@@ -140,10 +140,16 @@ export async function createEmployee(formData: FormData) {
   }
   const userId = created.user.id;
 
-  const { error: profileErr } = await admin.from("profiles").upsert({
+  // Parse the name into first and last name
+  const nameParts = name.trim().split(' ');
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.slice(1).join(' ') || '';
+
+  const { error: profileErr } = await admin.from("user_profiles").upsert({
     id: userId,
-    full_name: name,
-    official_email: email,
+    email: email,
+    first_name: firstName,
+    last_name: lastName,
     role: "employee",
     firm_id: firmId,
     employee_code: employeeCode,
