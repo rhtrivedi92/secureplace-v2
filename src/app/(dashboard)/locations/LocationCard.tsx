@@ -31,7 +31,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { EditLocationDialog } from "./edit-location-dialog";
-import { databases } from "@/lib/appwrite";
+import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 interface LocationCardProps {
   location: Location;
@@ -52,10 +52,17 @@ const LocationCard = ({ location, onActionComplete }: LocationCardProps) => {
 
   const handleDelete = async () => {
     try {
-      const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
-      const collectionId =
-        process.env.NEXT_PUBLIC_APPWRITE_LOCATIONS_COLLECTION_ID!;
-      await databases.deleteDocument(databaseId, collectionId, location.$id);
+      const supabase = createBrowserSupabase();
+      
+      const { error } = await supabase
+        .from('locations')
+        .delete()
+        .eq('id', location.id);
+
+      if (error) {
+        throw error;
+      }
+
       onActionComplete(); // Refresh the list
     } catch (error) {
       console.error("Failed to delete location:", error);
@@ -118,7 +125,7 @@ const LocationCard = ({ location, onActionComplete }: LocationCardProps) => {
       </CardContent>
       <CardFooter>
         <p className="text-sm text-slate-600">
-          Contact: {location.contact || "N/A"}
+          Description: {location.description || "N/A"}
         </p>
       </CardFooter>
 

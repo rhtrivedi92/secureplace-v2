@@ -14,9 +14,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusCircle } from "lucide-react";
-import { useAuth } from "@/context/UserContext"; // Import the useAuth hook
-import { databases } from "@/lib/appwrite"; // Import the CLIENT-SIDE database client
-import { ID } from "appwrite";
+import { useUser } from "@/hooks/useUser"; // Import the useUser hook from Supabase
+import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 interface AddLocationButtonProps {
   onLocationAdded: () => void;
@@ -25,7 +24,7 @@ interface AddLocationButtonProps {
 export function AddLocationButton({ onLocationAdded }: AddLocationButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth(); // Get the logged-in user from the context
+  const { user } = useUser(); // Get the logged-in user from Supabase
   const router = useRouter();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -44,22 +43,21 @@ export function AddLocationButton({ onLocationAdded }: AddLocationButtonProps) {
       address: formData.get("address") as string,
       latitude: parseFloat(formData.get("latitude") as string),
       longitude: parseFloat(formData.get("longitude") as string),
-      contact: formData.get("contact") as string,
-      firmId: user.firmId, // Add the firmId from the logged-in user
+      description: formData.get("contact") as string, // Using description field for contact
+      firm_id: user.firmId, // Add the firm_id from the logged-in user
+      is_active: true,
     };
 
     try {
-      const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
-      const collectionId =
-        process.env.NEXT_PUBLIC_APPWRITE_LOCATIONS_COLLECTION_ID!;
+      const supabase = createBrowserSupabase();
 
-      // Use the client-side SDK to create the document
-      await databases.createDocument(
-        databaseId,
-        collectionId,
-        ID.unique(),
-        data
-      );
+      const { error: insertError } = await supabase
+        .from('locations')
+        .insert([data]);
+
+      if (insertError) {
+        throw insertError;
+      }
 
       setIsOpen(false);
       onLocationAdded(); // Close dialog on success

@@ -1,15 +1,17 @@
 "use client";
 
-import { Models } from "appwrite";
-
-// This defines the shape of our location data based on your screenshot
-export interface Location extends Models.Document {
+// This defines the shape of our location data for Supabase
+export interface Location {
+  id: string;
+  firm_id: string;
   name: string;
-  address?: string;
+  address: string;
   latitude: number;
   longitude: number;
-  firmId: string;
-  contact?: string;
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // We are keeping this file for the type definition, but the columns are no longer needed for the card layout.

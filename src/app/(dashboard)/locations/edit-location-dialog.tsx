@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Location } from "./columns";
-import { databases } from "@/lib/appwrite";
+import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 interface EditLocationDialogProps {
   location: Location;
@@ -39,20 +39,20 @@ export function EditLocationDialog({
       address: formData.get("address") as string,
       latitude: parseFloat(formData.get("latitude") as string),
       longitude: parseFloat(formData.get("longitude") as string),
-      contact: formData.get("contact") as string,
+      description: formData.get("contact") as string, // Using description field for contact
     };
 
     try {
-      const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
-      const collectionId =
-        process.env.NEXT_PUBLIC_APPWRITE_LOCATIONS_COLLECTION_ID!;
+      const supabase = createBrowserSupabase();
 
-      await databases.updateDocument(
-        databaseId,
-        collectionId,
-        location.$id,
-        data
-      );
+      const { error } = await supabase
+        .from('locations')
+        .update(data)
+        .eq('id', location.id);
+
+      if (error) {
+        throw error;
+      }
 
       onOpenChange(false); // Close dialog
       onLocationUpdated(); // Refresh list
@@ -131,7 +131,7 @@ export function EditLocationDialog({
             <Input
               id="contact"
               name="contact"
-              defaultValue={location.contact}
+              defaultValue={location.description || ""}
               className="col-span-3"
             />
           </div>
